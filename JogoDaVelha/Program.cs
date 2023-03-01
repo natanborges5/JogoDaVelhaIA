@@ -1,121 +1,141 @@
-﻿//Inicio do jogo da velha
+﻿
 
-string[,] matriz = new string[3, 3] { 
-    { "null", "null", "null" },
-    { "null", "null", "null" },
-    { "null", "null", "null" } };
-bool jogoRolando = true;
-int jogador = 1;
+var jogo = new Jogo();
+var tabuleiro = new Tabuleiro();
+var jogador = new JogadorHumano();
+var jogadorRandom = new RandomPlayer();
+jogo.Joga(tabuleiro, jogador, jogadorRandom);
 
-while (jogoRolando)
+class Jogo
 {
-    PrintarJogo();
-    JogaPlayer(jogador);
-    if (VerificarGanhador(jogador))
+    static int[,] PosicaoDeVitoria = {  { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 },
+                                        { 0, 4, 8 }, { 6, 4, 2 }, { 6, 3, 9 },
+                                        { 7, 4, 1 }, { 8, 5, 2 }};
+    public bool VerificarGanhador(Tabuleiro Tabuleiro)
     {
-        PrintarJogo();
-        Console.WriteLine(string.Format("Jogador {0}({1}) venceu!!!", jogador, Enum.GetName(typeof(Simbolos), jogador)));
-        jogoRolando = false;
-    }
-    jogador = (jogador + 1) % 2;
-
-}
-void PrintarJogo()
-{
-    int rowLength = matriz.GetLength(0);
-    int colLength = matriz.GetLength(1);
-
-    for (int i = 0; i < rowLength; i++)
-    {
-        for (int j = 0; j < colLength; j++)
+        for (int i = 0; i < PosicaoDeVitoria.GetLength(0); i++)
         {
-            Console.Write(string.Format("{0} ", matriz[i, j] + " | "));
+            if (Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 0]] == Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 1]] && Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 1]] == Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 2]] &&
+                Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 0]] != Tabuleiro.Vazio && Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 1]] != Tabuleiro.Vazio && Tabuleiro.tabuleiro[PosicaoDeVitoria[i, 2]] != Tabuleiro.Vazio)
+                return true;
         }
-        Console.Write(Environment.NewLine + Environment.NewLine);
+        return false;
     }
-};
-void JogaPlayer(int jogador)
-{
-    var JogadorSimbolo = Enum.GetName(typeof(Simbolos), jogador);
-    Console.WriteLine(string.Format("Jogador ({0}) Digite a coluna selecionada: ",JogadorSimbolo));
-    var coluna = Convert.ToInt16(Console.ReadLine()) -1;
-    if (coluna < 0 || coluna > 2)
+    public void Joga(Tabuleiro tabuleiro1,JogadorHumano jogadorHumano,RandomPlayer randomPlayer)
     {
-        Console.WriteLine("Coluna invalida");
-        JogaPlayer(jogador);
-        return;
-    }
-    Console.WriteLine(string.Format("Jogador ({0}) Digite a linha selecionada: ", JogadorSimbolo));
-    var linha = Convert.ToInt16(Console.ReadLine()) -1;
-    if( linha < 0 || linha > 2)
-    {
-        Console.WriteLine("Linha invalida");
-        JogaPlayer(jogador);
-        return;
-    }
-
-    if (matriz[linha,coluna] == "null")
-    {
-        matriz[linha, coluna] = Enum.GetName(typeof(Simbolos), jogador);
-    }
-    else
-    {
-        Console.WriteLine("Posição já foi escolhido por um jogador");
-        JogaPlayer(jogador);
-        return;
-    }
-}
-bool VerificarGanhador(int jogador)
-{
-    if (VerificarGanhadorHorizontal(jogador) || VerificarGanhadorVertical(jogador) || VerificarGanhadorDiagonal(jogador))
-    {
-        return true;
-    }
-    else return false;
-}
-bool VerificarGanhadorHorizontal (int jogador)
-{
-    bool jogadorGanhou = false;
-    var jogadorSimbolo = Enum.GetName(typeof(Simbolos), jogador);
-    for (var linha = 0; linha < 3; linha++)
-    {
-        if (matriz[linha, 0] == jogadorSimbolo && matriz[linha, 1] == jogadorSimbolo && matriz[linha, 2] == jogadorSimbolo)
+        bool jogoRolando = true;
+        int jogador = 1;
+        while (jogoRolando)
         {
-            jogadorGanhou = true;
+            if (jogador == 1)
+            {
+                tabuleiro1.PrintTabuleiro();
+                jogadorHumano.Joga(tabuleiro1,jogador);
+            }
+            else
+                randomPlayer.JogaRandom(tabuleiro1,jogador);
+            if (VerificarGanhador(tabuleiro1))
+            {
+                Console.WriteLine(tabuleiro1.PrintTabuleiro());
+                Console.WriteLine(string.Format("Jogador {0}({1}) venceu!!!", jogador, Enum.GetName(typeof(Tabuleiro.Simbolos), jogador)));
+                jogoRolando = false;
+            }
+            jogador = (jogador + 1) % 2;
+
         }
     }
-    return jogadorGanhou;
 }
-bool VerificarGanhadorVertical(int jogador)
+
+class Tabuleiro
 {
-    bool jogadorGanhou = false;
-    var jogadorSimbolo = Enum.GetName(typeof(Simbolos), jogador);
-    for (var coluna = 0; coluna < 3; coluna++)
+    public enum Simbolos
     {
-        if (matriz[0, coluna] == jogadorSimbolo && matriz[1, coluna] == jogadorSimbolo && matriz[2, coluna] == jogadorSimbolo)
+        O,
+        X
+    };
+    static public string Vazio = " ";
+    static public string[] tabuleiro = { Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio };
+    public string PrintTabuleiro()
+    {
+        int tabuleiroLength = tabuleiro.Length;
+
+        var tabuleiroprint = string.Format(" {0} | {1} | {2} \n", tabuleiro[6], tabuleiro[7], tabuleiro[8]);
+        tabuleiroprint += "---+---+---\n";
+        tabuleiroprint += string.Format(" {0} | {1} | {2} \n", tabuleiro[3], tabuleiro[4], tabuleiro[5]);
+        tabuleiroprint += "---+---+---\n";
+        tabuleiroprint += string.Format(" {0} | {1} | {2} \n", tabuleiro[0], tabuleiro[1], tabuleiro[2]);
+        return tabuleiroprint;
+    }
+    public void Joga(int jogador, int posicaoJogada)
+    {
+        try
         {
-            jogadorGanhou = true;
+            if (Tabuleiro.tabuleiro[posicaoJogada] != Vazio)
+            {
+                Console.WriteLine("Jogada ja foi feita por outro jogador.");
+                Console.WriteLine("Posicoes disponiveis" + GetJogadasPossiveisString().ToArray().ToString());
+                return;
+            }
         }
+        catch (KeyNotFoundException)
+        {
+            Console.WriteLine("Posicao invalida");
+            Console.WriteLine("Posicoes disponiveis" + GetJogadasPossiveisString().ToArray().ToString());
+            return;
+        }
+        tabuleiro[posicaoJogada] = Enum.GetName(typeof(Simbolos), jogador);
     }
-    return jogadorGanhou;
+    public List<int> GetJogadasPossiveis()
+    {
+        var listaJogadasLivres = new List<int>();
+        for (int i = 0; i < tabuleiro.Length; i++)
+        {
+            if (tabuleiro[i] == Vazio)
+            {
+                listaJogadasLivres.Add(i);
+            }
+        }
+        return listaJogadasLivres;
+    }
+    public List<int> GetJogadasPossiveisString()
+    {
+        var listaJogadasLivres = new List<int>();
+        for (int i = 0; i < tabuleiro.Length; i++)
+        {
+            if (tabuleiro[i] == Vazio)
+            {
+                listaJogadasLivres.Add(i+ 1);
+            }
+        }
+        return listaJogadasLivres;
+    }
 }
-bool VerificarGanhadorDiagonal(int jogador)
+class JogadorHumano
 {
-    bool jogadorGanhou = false;
-    var jogadorSimbolo = Enum.GetName(typeof(Simbolos), jogador);
-    if (matriz[0, 0] == jogadorSimbolo && matriz[1, 1] == jogadorSimbolo && matriz[2, 2] == jogadorSimbolo)
+    public void Joga(Tabuleiro tabuleiro, int jogador)
     {
-        jogadorGanhou = true;
+        int posicaoJogada;
+        while (true)
+        {
+            var JogadorSimbolo = Enum.GetName(typeof(Tabuleiro.Simbolos), jogador);
+            Console.WriteLine(string.Format("Jogador ({0}) Digite a posicao para jogar: ", JogadorSimbolo));
+            posicaoJogada = Convert.ToInt16(Console.ReadLine()) - 1;
+            if (tabuleiro.GetJogadasPossiveis().Contains(posicaoJogada))
+            {
+                break;
+            }
+        }
+        tabuleiro.Joga(jogador, posicaoJogada);
     }
-    if (matriz[0, 2] == jogadorSimbolo && matriz[1, 1] == jogadorSimbolo && matriz[2, 0] == jogadorSimbolo)
+}
+class RandomPlayer
+{
+    public void JogaRandom(Tabuleiro tabuleiro,int jogador)
     {
-        jogadorGanhou = true;
+        var jogadasAbertas = tabuleiro.GetJogadasPossiveis();
+        Random rnd = new Random();
+        int r = rnd.Next(jogadasAbertas.Count);
+        tabuleiro.Joga(jogador, jogadasAbertas[r]);
     }
 
-    return jogadorGanhou;
 }
-enum Simbolos
-{
-    O,
-    X
-};
