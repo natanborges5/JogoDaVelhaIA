@@ -1,79 +1,64 @@
 ﻿using System.Collections.Generic;
+using static System.Formats.Asn1.AsnWriter;
 
 class JogoDaVelha
 {
     class Jogo
     {
         public Tabuleiro tabuleiro { get; set; }
-        static int[,] PosicaoDeVitoria = {  { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 },
-                                        { 0, 4, 8 }, { 6, 4, 2 }, { 6, 3, 0 },
-                                        { 7, 4, 1 }, { 8, 5, 2 }};
+        public JogadorBase Jogador1 { get; set; }
+        public JogadorBase Jogador2 { get; set; }
         public Jogo()
         {
             tabuleiro = new Tabuleiro();
         }
-        public bool VerificarGanhador()
+        public JogadorBase PegaProximoJogador(JogadorBase jogadorTurno)
         {
-            for (int i = 0; i < PosicaoDeVitoria.GetLength(0); i++)
-            {
-                if (tabuleiro.Table[PosicaoDeVitoria[i, 0]] != Tabuleiro.Vazio && tabuleiro.Table[PosicaoDeVitoria[i, 1]] != Tabuleiro.Vazio && tabuleiro.Table[PosicaoDeVitoria[i, 2]] != Tabuleiro.Vazio)
-                {
-                    if (tabuleiro.Table[PosicaoDeVitoria[i, 0]] == tabuleiro.Table[PosicaoDeVitoria[i, 1]] && tabuleiro.Table[PosicaoDeVitoria[i, 1]] == tabuleiro.Table[PosicaoDeVitoria[i, 2]])
-                        return true;
-                }
-
-            }
-            return false;
+            if (jogadorTurno.PlayerSimbol == Jogador1.PlayerSimbol)
+                return Jogador2;
+            else
+                return Jogador1;
         }
-        public int Joga(int jogador)
+        public void Joga()
         {
-            var humano = new JogadorHumano();
-            var NPC = new IAPlayer();
+            var player = this.Jogador1;
             while (true)
             {
-                if (jogador == 1)
+                tabuleiro.PrintTabuleiro();
+                player.Joga(this.tabuleiro);
+                if (tabuleiro.VerificarGanhador())
                 {
                     tabuleiro.PrintTabuleiro();
-                    humano.Joga(tabuleiro, jogador);
-                }
-                else
-                    NPC.Joga(tabuleiro, jogador);
+                    Console.WriteLine(string.Format("Jogador {0} venceu!!!", player.PlayerSimbol));
+                    break;
 
-                if (tabuleiro.GetJogadasPossiveis().Count != 0)
+                }else if(tabuleiro.GetJogadasPossiveis().Count == 0)
                 {
-                    if (VerificarGanhador())
-                    {
-                        tabuleiro.PrintTabuleiro();
-                        Console.WriteLine(string.Format("Jogador {0}({1}) venceu!!!", jogador, Enum.GetName(typeof(Tabuleiro.Simbolos), jogador)));
-                        break;
-
-                    }
-                }
-                else
-                {
+                    tabuleiro.PrintTabuleiro();
                     Console.WriteLine("Deu Velha!!");
                     break;
                 }
-                jogador = (jogador + 1) % 2;
-
+               player = PegaProximoJogador(player);
             }
-            return jogador;
         }
         public int JogaSimulacao(int jogador)
         {
             var NPC = new RandomPlayer();
             while (true)
             {
-                NPC.JogaRandom(this.tabuleiro, jogador);
+                NPC.JogaRandom(this.tabuleiro);
+                if (tabuleiro.VerificarGanhador())
+                {
+                    break;
+                }
                 if (tabuleiro.GetJogadasPossiveis().Count == 0)
                 {
                     return -1;
                 }
-                if (VerificarGanhador())
-                {
-                    break;
-                }
-                jogador = (jogador + 1) % 2;
+                if (NPC.PlayerSimbol == Tabuleiro.Simbolos.X)
+                    NPC.PlayerSimbol = Tabuleiro.Simbolos.O;
+                else
+                    NPC.PlayerSimbol = Tabuleiro.Simbolos.X;
             }
             return jogador;
         }
@@ -87,11 +72,52 @@ class JogoDaVelha
             X
         };
         static public string Vazio = " ";
+        static int[,] PosicaoDeVitoria = {  { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 },
+                                        { 0, 4, 8 }, { 6, 4, 2 }, { 6, 3, 0 },
+                                        { 7, 4, 1 }, { 8, 5, 2 }};
         public string[] Table { get; set; }
 
         public Tabuleiro()
         {
             Table = new string[] { Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio, Tabuleiro.Vazio};
+        }
+        public bool VerificarGanhador()
+        {
+            for (int i = 0; i < PosicaoDeVitoria.GetLength(0); i++)
+            {
+                if (Table[PosicaoDeVitoria[i, 0]] != Tabuleiro.Vazio && Table[PosicaoDeVitoria[i, 1]] != Tabuleiro.Vazio && Table[PosicaoDeVitoria[i, 2]] != Tabuleiro.Vazio)
+                {
+                    if (Table[PosicaoDeVitoria[i, 0]] == Table[PosicaoDeVitoria[i, 1]] && Table[PosicaoDeVitoria[i, 1]] == Table[PosicaoDeVitoria[i, 2]])
+                        return true;
+                }
+
+            }
+            return false;
+        }
+        public int VerificarGanhadorMinMax()
+        {
+            for (int i = 0; i < PosicaoDeVitoria.GetLength(0); i++)
+            {
+                if (Table[PosicaoDeVitoria[i, 0]] != Tabuleiro.Vazio && Table[PosicaoDeVitoria[i, 1]] != Tabuleiro.Vazio && Table[PosicaoDeVitoria[i, 2]] != Tabuleiro.Vazio)
+                {
+                    if (Table[PosicaoDeVitoria[i, 0]] == Table[PosicaoDeVitoria[i, 1]] && Table[PosicaoDeVitoria[i, 1]] == Table[PosicaoDeVitoria[i, 2]])
+                    {
+                        if (Table[PosicaoDeVitoria[i, 0]] == Tabuleiro.Simbolos.X.ToString())
+                            return 10;
+                        else
+                            return -10;
+
+                    }
+                }
+            }
+            return 0;
+        }
+        public void CopiarTabuleiro(Tabuleiro tabuleiroOld)
+        {
+            for (int b = 0; b < tabuleiroOld.Table.Length; b++)
+            {
+                this.Table[b] = tabuleiroOld.Table[b];
+            }
         }
         public void PrintTabuleiro()
         {
@@ -103,7 +129,7 @@ class JogoDaVelha
             tabuleiroprint += string.Format(" {0} | {1} | {2} \n", Table[0], Table[1], Table[2]);
             Console.WriteLine(tabuleiroprint);
         }
-        public void Joga(int jogador, int posicaoJogada)
+        public void Joga(Tabuleiro.Simbolos jogador, int posicaoJogada)
         {
             try
             {
@@ -120,7 +146,7 @@ class JogoDaVelha
                 Console.WriteLine("Posicoes disponiveis" + GetJogadasPossiveisString());
                 return;
             }
-            Table[posicaoJogada] = Enum.GetName(typeof(Simbolos), jogador);
+            Table[posicaoJogada] = jogador.ToString();
         }
         public List<int> GetJogadasPossiveis()
         {
@@ -147,15 +173,14 @@ class JogoDaVelha
             return string.Join("; ", listaJogadasLivres);
         }
     }
-    class JogadorHumano
+    class JogadorHumano : JogadorBase
     {
-        public void Joga(Tabuleiro tabuleiro, int jogador)
+        public override void Joga(Tabuleiro tabuleiro)
         {
             int posicaoJogada;
             while (true)
             {
-                var JogadorSimbolo = Enum.GetName(typeof(Tabuleiro.Simbolos), jogador);
-                Console.WriteLine(string.Format("Jogador ({0}) Digite a posicao para jogar: ", JogadorSimbolo));
+                Console.WriteLine(string.Format("Jogador ({0}) Digite a posicao para jogar: ", this.PlayerSimbol));
                 posicaoJogada = Convert.ToInt16(Console.ReadLine()) - 1;
                 if (tabuleiro.GetJogadasPossiveis().Contains(posicaoJogada))
                 {
@@ -163,48 +188,63 @@ class JogoDaVelha
                 }
                 Console.WriteLine("Posicao invalida, selecione uma dessas posicoes: " + tabuleiro.GetJogadasPossiveisString());
             }
-            tabuleiro.Joga(jogador, posicaoJogada);
+            tabuleiro.Joga(this.PlayerSimbol, posicaoJogada);
         }
     }
-    class RandomPlayer
+    class MiniMaxPlayer : JogadorBase
     {
-        public void JogaRandom(Tabuleiro tabuleiro, int jogador)
+        public override void Joga(Tabuleiro tabuleiro)
+        {
+            var simulator = new Simulation();
+            simulator.TabuleiroSimulation = tabuleiro;
+            var pos = simulator.GetBestMove(this.PlayerSimbol, tabuleiro);
+            tabuleiro.Joga(this.PlayerSimbol, pos);
+        }
+    }
+
+    class RandomPlayer : JogadorBase
+    {
+        public void JogaRandom(Tabuleiro tabuleiro)
         {
             var jogadasAbertas = tabuleiro.GetJogadasPossiveis();
             Random rnd = new Random();
             int r = rnd.Next(jogadasAbertas.Count);
-            tabuleiro.Joga(jogador, jogadasAbertas[r]);
+            tabuleiro.Joga(this.PlayerSimbol, jogadasAbertas[r]);
         }
     }
-    class IAPlayer
+    class MonteCarloIA : JogadorBase
     {
-        public void Joga(Tabuleiro tabuleiro1, int jogador)
+        public override void Joga(Tabuleiro tabuleiro1)
         {
             var simulator = new Simulation();
-            simulator.tabuleiro22 = tabuleiro1;
-            var simulacao = simulator.Simular();
-            tabuleiro1.Joga(jogador, simulacao);
+            simulator.TabuleiroSimulation = tabuleiro1;
+            var simulacao = simulator.SimularMonteCarlo();
+            tabuleiro1.Joga(this.PlayerSimbol, simulacao);
+        }
+    }
+    class JogadorBase
+    {
+        public Tabuleiro.Simbolos PlayerSimbol { get; set; }
+        public virtual void Joga(Tabuleiro tabuleiro)
+        {
+
         }
     }
     class Simulation
     {
         public static int NumeroDeSimulacoes = 1000;
-        public Tabuleiro tabuleiro22;
+        public Tabuleiro TabuleiroSimulation;
 
-        public int Simular()
+        public int SimularMonteCarlo()
         {
             IDictionary<int, int> scores = new Dictionary<int, int>();
             var JogadorSimbolo = Enum.GetName(typeof(Tabuleiro.Simbolos), 0);
-            foreach (int pos in tabuleiro22.GetJogadasPossiveis())
+            foreach (int pos in TabuleiroSimulation.GetJogadasPossiveis())
             {
                 scores.Add(pos, 0);
             }
             Jogo jogoSimulado = new Jogo();
-            for (int b = 0; b < tabuleiro22.Table.Length; b++)
-            {
-                jogoSimulado.tabuleiro.Table[b] = tabuleiro22.Table[b];
-            }
-
+            jogoSimulado.tabuleiro.CopiarTabuleiro(TabuleiroSimulation);
             for (int i = 0; i < NumeroDeSimulacoes; i++)
             {
                 Jogo jogoTeste = new Jogo();
@@ -227,7 +267,6 @@ class JogoDaVelha
                         scores[pos] -= coef;
                     }
                 }
-
             }
             var keyOfMaxValue = scores.Aggregate((x, y) => x.Value > y.Value ? x : y).Key;
             string textScores = "";
@@ -238,14 +277,71 @@ class JogoDaVelha
             Console.WriteLine(textScores);
             return keyOfMaxValue;
         }
-        static void Main(string[] args)
+        public int MiniMax(Tabuleiro tabuleiro, int depth, bool isMax)
         {
-            var tabuleiro = new Tabuleiro();
-            var jogo = new Jogo();
-            jogo.tabuleiro = tabuleiro;
-            jogo.Joga(1);
+            var bestScore = isMax ? -100000 : 100000;
+            var score = 0;
+            foreach(var move in tabuleiro.GetJogadasPossiveis())
+            {
+                var currentSymbol = isMax ? Tabuleiro.Simbolos.O : Tabuleiro.Simbolos.X;
+                tabuleiro.Joga(currentSymbol, move);
+                score = ComputarScore(tabuleiro);
+                if(score != 0)
+                {
+                    tabuleiro.Table[move] = Tabuleiro.Vazio;
+                    return score;
+                }
+                score = MiniMax(tabuleiro, depth + 1, !isMax);
+                tabuleiro.Table[move] = Tabuleiro.Vazio;
+                if (isMax)
+                    bestScore = Math.Max(bestScore, score);
+                else
+                    bestScore = Math.Min(bestScore, score);
+
+            }
+            return score;
+        }
+        public int GetBestMove(Tabuleiro.Simbolos playerSimbol,Tabuleiro tabuleiro)
+        {
+            var newBoard = new Tabuleiro();
+            newBoard.CopiarTabuleiro(tabuleiro);
+            IDictionary<int, int> moves = new Dictionary<int, int>();
+            foreach (var move in tabuleiro.GetJogadasPossiveis())
+            {
+                newBoard.Joga(playerSimbol, move);
+                var score = ComputarScore(newBoard);
+                if (score != 0)
+                    return move;
+                else
+                    moves.Add(move, MiniMax(newBoard,1,false));
+                newBoard.Table[move] = Tabuleiro.Vazio;
+
+            }
+            var keyOfMinValue = moves.Aggregate((x, y) => x.Value < y.Value ? x : y).Key;
+            return keyOfMinValue;
+        }
+        public int ComputarScore(Tabuleiro tabuleiro)
+        {
+            var vencedor = tabuleiro.VerificarGanhadorMinMax();
+            if (vencedor != 0)
+                return vencedor;
+            if (tabuleiro.GetJogadasPossiveis().Count == 0)
+                return 0;
+            return 0;
+
         }
     }
+
+    static void Main(string[] args)
+    {
+        var jogo = new Jogo();
+        jogo.Jogador1 = new JogadorHumano();
+        jogo.Jogador2 = new MiniMaxPlayer();
+        jogo.Jogador1.PlayerSimbol = Tabuleiro.Simbolos.X;
+        jogo.Jogador2.PlayerSimbol = Tabuleiro.Simbolos.O;
+        jogo.Joga();
+    }
+
 
 }
 
