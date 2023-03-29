@@ -305,6 +305,7 @@ class JogoDaVelha
         {
             var newBoard = new Tabuleiro();
             newBoard.CopiarTabuleiro(tabuleiro);
+
             IDictionary<int, int> moves = new Dictionary<int, int>();
             foreach (var move in tabuleiro.GetJogadasPossiveis())
             {
@@ -317,7 +318,7 @@ class JogoDaVelha
                 newBoard.Table[move] = Tabuleiro.Vazio;
 
             }
-            var keyOfMinValue = moves.Aggregate((x, y) => x.Value < y.Value ? x : y).Key;
+            var keyOfMinValue = moves.Aggregate((x, y) => x.Value <= y.Value ? x : y).Key;
             return keyOfMinValue;
         }
         public int ComputarScore(Tabuleiro tabuleiro)
@@ -325,8 +326,6 @@ class JogoDaVelha
             var vencedor = tabuleiro.VerificarGanhadorMinMax();
             if (vencedor != 0)
                 return vencedor;
-            if (tabuleiro.GetJogadasPossiveis().Count == 0)
-                return 0;
             return 0;
 
         }
@@ -335,7 +334,7 @@ class JogoDaVelha
     static void Main(string[] args)
     {
         var jogo = new Jogo();
-        jogo.Jogador1 = new JogadorHumano();
+        jogo.Jogador1 = new MiniMaxPlayer();
         jogo.Jogador2 = new MiniMaxPlayer();
         jogo.Jogador1.PlayerSimbol = Tabuleiro.Simbolos.X;
         jogo.Jogador2.PlayerSimbol = Tabuleiro.Simbolos.O;
